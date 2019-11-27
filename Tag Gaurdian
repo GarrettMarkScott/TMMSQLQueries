@@ -1,0 +1,59 @@
+SELECT * FROM
+    (SELECT
+    gtm.TagID,
+    gtm.DealerName,
+    gtm.TrackedItemName,
+    gtm.LeadType,
+    gtm.EventCategory as ManualCategoryEntry,
+    e.`Event Category` as RealGaCategory,
+    gtm.EventAction as ManualActionEntry,
+    e.`Event Action` as RealGaAction,
+    gtm.EventLabel as ManualLabelEntry,
+    e.`Event Label` as RealGaLabel,
+    CASE WHEN CONCAT(e.`Event Category`, e.`Event Action`, e.`Event Label`) IS NOT NULL THEN "Yes" ELSE "NO" END AS SuccessfulHits
+
+    FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+    LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as e ON CONCAT(e.`Event Category`, e.`Event Action`,e.`Event Label`) = CONCAT(gtm.EventCategory, gtm.EventAction, gtm.EventLabel)
+    ) as sub1
+/* .    WHERE sub1.SuccessfulHits = "No"    */
+
+
+-------------------- PART 1, PREPARING FOR LIKE STATMENT -----------------------
+/* This chunk builds a great string (manually entered events)
+ Use a LIKE statement to compare with the actual events coming in */
+
+SELECT
+  gtm.EventCategory,
+  gtm.EventAction,
+  gtm.EventLabel,
+  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString
+FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+WHERE gtm.EventCategory != ''
+
+
+-------------------- PART 2, PREPARING ACTUAL EVENTS ---------------------------
+/* This code block is to construct a event string that will be matched against
+the event string constructed above */
+
+ SELECT
+   ga.`Event Category`,
+   ga.`Event Action`,
+   ga.`Event Label`,
+   CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+ FROM `data_5d67cfa96d8c0`.`GA Events (64)` as ga
+
+
+
+--------------------- PART 3, JOINING THE TWO TABLES ---------------------------
+
+
+SELECT
+ gtm.DealerName,
+ REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+ CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+WHERE ga.`Event Category` IS NULL
+
+LIMIT 30

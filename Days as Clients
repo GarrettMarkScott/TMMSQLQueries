@@ -1,0 +1,90 @@
+
+/*This groups the clients that DID terminate us but does not include current clients */
+
+SELECT DealerName, DATEDIFF(terminationdate, CAST(onboardingdate AS DATE)) AS DaysAsClient
+FROM `data_5d67cfa96d8c0`.`Client Accounts (22)`  as accounts
+GROUP BY DealerName
+HAVING DaysAsClient IS NOT NULL
+
+
+/* This section is to troubleshoot clients currently with us as well */
+
+
+SELECT DealerName, DATEDIFF(CASE WHEN terminationdate IS NOT NULL THEN terminationdate ELSE DATE(NOW()) END, CAST(onboardingdate AS DATE)) AS DaysAsClient
+FROM `data_5d67cfa96d8c0`.`Client Accounts (22)`  as accounts
+GROUP BY DealerName
+HAVING DaysAsClient IS NOT NULL
+ORDER BY DaysAsClient DESC
+
+
+/* This code converts into months NOT WORKING */
+
+SELECT DealerName,
+PERIOD_DIFF(CASE
+            WHEN terminationdate IS NOT NULL THEN DATE_FORMAT(terminationdate,"%Y %m")
+            ELSE DATE_FORMAT(NOW(),"%Y %m") END,
+            DATE_FORMAT(CAST(onboardingdate AS DATE),"%Y%m")) AS DaysAsClient
+FROM `data_5d67cfa96d8c0`.`Client Accounts (22)`  as accounts
+GROUP BY DealerName
+HAVING DaysAsClient IS NOT NULL
+ORDER BY DaysAsClient DESC
+
+
+/* This is for Troy's AND TMM Specification */
+SELECT  `sys_id`, `sys_user_id`,`sys_cdate`,`sys_udate`,
+  '2016' as Year,
+  DealerName,
+  DATE_FORMAT(onboardingdate, '%Y') as `Start Year`,
+  CASE
+    WHEN onboardingdate LIKE "2016%" THEN "First Year"
+    WHEN terminationdate IS NOT NULL THEN "Lost"
+    ELSE "Long Term" END AS "Status"
+FROM `data_5d67cfa96d8c0`.`t_22` as accounts
+WHERE onboardingdate < "20170101" AND terminationdate IS NULL OR terminationdate < "20170101"
+
+
+UNION ALL
+
+
+SELECT  `sys_id`, `sys_user_id`,`sys_cdate`,`sys_udate`,
+  '2017' as Year,
+  DealerName,
+  DATE_FORMAT(onboardingdate, '%Y') as `Start Year`,
+  CASE
+    WHEN onboardingdate LIKE "2017%" THEN "First Year"
+    WHEN terminationdate IS NOT NULL THEN "Lost"
+    ELSE "Long Term" END AS "Status"
+FROM `data_5d67cfa96d8c0`.`t_22` as accounts
+WHERE onboardingdate < "20180101" AND terminationdate IS NULL OR terminationdate < "20180101"
+
+
+UNION ALL
+
+
+SELECT `sys_id`, `sys_user_id`,`sys_cdate`,`sys_udate`,
+  '2018' as Year,
+  DealerName,
+  DATE_FORMAT(onboardingdate, '%Y') as `Start Year`,
+  CASE
+    WHEN onboardingdate LIKE "2018%" THEN "First Year"
+    WHEN terminationdate IS NOT NULL THEN "Lost"
+    ELSE "Long Term" END AS "Status"
+FROM `data_5d67cfa96d8c0`.`t_22` as accounts
+WHERE onboardingdate < "20190101" AND terminationdate IS NULL OR terminationdate < "20190101"
+
+
+UNION ALL
+
+SELECT `sys_id`, `sys_user_id`,`sys_cdate`,`sys_udate`,
+  '2019' as Year,
+  DealerName,
+  DATE_FORMAT(onboardingdate, '%Y') as `Start Year`,
+  CASE
+    WHEN onboardingdate LIKE "2019%" THEN "First Year"
+    WHEN terminationdate IS NOT NULL THEN "Lost"
+    ELSE "Long Term" END AS "Status"
+FROM `data_5d67cfa96d8c0`.`t_22` as accounts
+WHERE onboardingdate < "20200101" AND terminationdate IS NULL OR terminationdate < "20200101"
+
+
+ORDER BY Year, Status, DealerName
