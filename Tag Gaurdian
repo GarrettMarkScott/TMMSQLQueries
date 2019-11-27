@@ -45,7 +45,9 @@ the event string constructed above */
 
 
 --------------------- PART 3, JOINING THE TWO TABLES ---------------------------
-
+/*This code block will successfully LEFT JOIN DealerName and the gtm.EventString
+that SHOULD be matched up with the ga.EventString. If NULL then the tag has not
+fired or been reported from imported GA events. */
 
 SELECT
  gtm.DealerName,
@@ -57,3 +59,44 @@ LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Catego
 WHERE ga.`Event Category` IS NULL
 
 LIMIT 30
+
+
+------------------- PART 4A, CALCULATING DAYS SINCE LAST FIRE -------------------
+
+SELECT
+ gtm.DealerName,
+ ga.`Date` as GADate,
+ gtm.`Date` as GTMDate,
+ REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+ CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+WHERE gtm.EventCategory != ""
+  AND gtm.DealerName LIKE "Steven%"
+
+GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+ORDER BY gtm.DealerName
+
+LIMIT 200
+
+------------------- PART 4B, CALCULATING DAYS SINCE LAST FIRE -------------------
+
+SELECT
+ gtm.DealerName,
+ ga.`Date` as GADate,
+ gtm.`Date` as GTMDate,
+ REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+ CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+WHERE gtm.EventCategory != ""
+  AND gtm.DealerName LIKE "Steven%"
+
+GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+ORDER BY gtm.DealerName
+
+LIMIT 200
