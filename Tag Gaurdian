@@ -75,28 +75,82 @@ LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Catego
 WHERE gtm.EventCategory != ""
   AND gtm.DealerName LIKE "Steven%"
 
-GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+/*  GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')  */
 
 ORDER BY gtm.DealerName
 
 LIMIT 200
+
+/* RESOURCE: https://stackoverflow.com/questions/13556557/how-to-return-in-mysql-group-by-the-first-record-by-date */
 
 ------------------- PART 4B, CALCULATING DAYS SINCE LAST FIRE -------------------
 
 SELECT
- gtm.DealerName,
- ga.`Date` as GADate,
- gtm.`Date` as GTMDate,
- REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
- CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
-FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
-
-WHERE gtm.EventCategory != ""
-  AND gtm.DealerName LIKE "Steven%"
-
-GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
-
-ORDER BY gtm.DealerName
+    MAX(ga.`Date`) AS MostRecentFire,
+    CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) AS GAEventString
+FROM
+    `data_5d67cfa96d8c0`.`GA Events (64)` as ga
 
 LIMIT 200
+
+
+SELECT
+(
+    SELECT
+    MAX(t1.GADate),
+    t1.GAEventString
+    FROM(
+        SELECT
+         gtm.DealerName,
+         ga.`Date` as GADate,
+         gtm.`Date` as GTMDate,
+         REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+         CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+        FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+        LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+        WHERE gtm.EventCategory != ""
+          AND gtm.DealerName LIKE "Steven%"
+
+        ) t1
+    GROUP BY t1.GAEventString
+) t2
+
+
+
+------------ WORKING -------------
+
+
+
+SELECT
+t1.sys_id, t1.sys_cdate, t1.sys_udate, t1.sys_user_id,
+t1.DealerName,
+t1.TrackedItemName,
+t1.LeadType
+t1.GTMEventString,
+
+MAX(t1.GADate) AS LastDateTagFired,
+CASE
+    WHEN MAX(t1.GADate) IS NOT NULL THEN DATEDIFF(CURDATE(),MAX(t1.GADate))
+    ELSE CONCAT('Created: ',t1.GTMDate)
+    END AS DaysSince
+
+FROM
+    (SELECT
+     gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
+     gtm.DealerName,
+     gtm.TrackedItemName,
+     gtm.LeadType,
+     ga.`Date` as GADate,
+     gtm.`Date` as GTMDate,
+     REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+     CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+    FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+    LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+    WHERE gtm.EventCategory != ""
+    AND gtm.DealerName LIKE "Steven%"
+    )  t1
+
+GROUP BY t1.DealerName, t1.GTMEventString
+ORDER BY t1.DealerName
