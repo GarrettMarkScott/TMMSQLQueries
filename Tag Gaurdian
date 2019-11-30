@@ -1,107 +1,62 @@
-SELECT * FROM
-    (SELECT
-    gtm.TagID,
-    gtm.DealerName,
-    gtm.TrackedItemName,
-    gtm.LeadType,
-    gtm.EventCategory as ManualCategoryEntry,
-    e.`Event Category` as RealGaCategory,
-    gtm.EventAction as ManualActionEntry,
-    e.`Event Action` as RealGaAction,
-    gtm.EventLabel as ManualLabelEntry,
-    e.`Event Label` as RealGaLabel,
-    CASE WHEN CONCAT(e.`Event Category`, e.`Event Action`, e.`Event Label`) IS NOT NULL THEN "Yes" ELSE "NO" END AS SuccessfulHits
+SELECT *,
+CASE
+    WHEN t2.LeadType = 'Bad Credit' AND t2.DaysSince > 60
+        THEN t2.DaysSince + 50
+    WHEN t2.LeadType = 'Commercial' AND t2.DaysSince > 90
+        THEN t2.DaysSince + 50
+    WHEN t2.LeadType = 'Contact' AND t2.DaysSince > 7
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Finance' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 50
+    WHEN t2.LeadType = 'Order Parts/Accessories' AND t2.DaysSince > 90
+        THEN t2.DaysSince + 25
+    WHEN t2.LeadType = 'Other' AND t2.DaysSince > 21
+        THEN t2.DaysSince + 25
+    WHEN t2.LeadType = 'Schedule Service' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Sell Your Car' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Special, Military/Student' AND t2.DaysSince > 90
+        THEN t2.DaysSince + 10
+    WHEN t2.LeadType = 'Special, Sales' AND t2.DaysSince > 21
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Special, Service' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 25
+    WHEN t2.LeadType = 'SRP/VDP' AND t2.DaysSince > 7
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Test Drive (Island Page)' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 100
+    WHEN t2.LeadType = 'Trade Tool' AND t2.DaysSince > 14
+        THEN t2.DaysSince + 100
+    WHEN t2.DaysSince <= 7 THEN 0
+    ELSE t2.DaysSince
+END AS Severity
 
-    FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-    LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as e ON CONCAT(e.`Event Category`, e.`Event Action`,e.`Event Label`) = CONCAT(gtm.EventCategory, gtm.EventAction, gtm.EventLabel)
-    ) as sub1
-/* .    WHERE sub1.SuccessfulHits = "No"    */
-
-
--------------------- PART 1, PREPARING FOR LIKE STATMENT -----------------------
-/* This chunk builds a great string (manually entered events)
- Use a LIKE statement to compare with the actual events coming in */
-
-SELECT
-  gtm.EventCategory,
-  gtm.EventAction,
-  gtm.EventLabel,
-  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString
-FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-WHERE gtm.EventCategory != ''
-
-
--------------------- PART 2, PREPARING ACTUAL EVENTS ---------------------------
-/* This code block is to construct a event string that will be matched against
-the event string constructed above */
-
- SELECT
-   ga.`Event Category`,
-   ga.`Event Action`,
-   ga.`Event Label`,
-   CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
- FROM `data_5d67cfa96d8c0`.`GA Events (64)` as ga
-
-
-
---------------------- PART 3, JOINING THE TWO TABLES ---------------------------
-/*This code block will successfully LEFT JOIN DealerName and the gtm.EventString
-that SHOULD be matched up with the ga.EventString. If NULL then the tag has not
-fired or been reported from imported GA events. */
-
-SELECT
- gtm.DealerName,
- REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
- CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
-FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
-
-WHERE ga.`Event Category` IS NULL
-
-LIMIT 30
-
-
-------------------- PART 4A, CALCULATING DAYS SINCE LAST FIRE -------------------
-
-SELECT
- gtm.DealerName,
- ga.`Date` as GADate,
- gtm.`Date` as GTMDate,
- REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
- CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
-FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
-
-WHERE gtm.EventCategory != ""
-  AND gtm.DealerName LIKE "Steven%"
-
-/*  GROUP BY  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')  */
-
-ORDER BY gtm.DealerName
-
-LIMIT 200
-
-/* RESOURCE: https://stackoverflow.com/questions/13556557/how-to-return-in-mysql-group-by-the-first-record-by-date */
-
-------------------- PART 4B, CALCULATING DAYS SINCE LAST FIRE -------------------
-
-SELECT
-    MAX(ga.`Date`) AS MostRecentFire,
-    CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) AS GAEventString
 FROM
-    `data_5d67cfa96d8c0`.`GA Events (64)` as ga
+    (SELECT
+    t1.sys_id, t1.sys_cdate, t1.sys_udate, t1.sys_user_id,
+    t1.DealerName,
+    t1.TrackedItemName,
+    t1.LeadType,
+    t1.EventCategory,
+    t1.EventAction,
+    t1.EventLabel,
+    t1.GTMDate as DateCreated,
+    MAX(t1.GADate) AS LastDateTagFired,
+    CASE
+        WHEN MAX(t1.GADate) IS NOT NULL THEN DATEDIFF(CURDATE(),MAX(t1.GADate))
+        ELSE DATEDIFF(CURDATE(),t1.GTMDate)
+        END AS DaysSince
 
-LIMIT 200
-
-
-SELECT
-(
-    SELECT
-    MAX(t1.GADate),
-    t1.GAEventString
-    FROM(
-        SELECT
+    FROM
+        (SELECT
+         gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
          gtm.DealerName,
+         gtm.TrackedItemName,
+         gtm.LeadType,
+         gtm.EventCategory,
+         gtm.EventAction,
+         gtm.EventLabel,
          ga.`Date` as GADate,
          gtm.`Date` as GTMDate,
          REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
@@ -110,47 +65,11 @@ SELECT
         LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
 
         WHERE gtm.EventCategory != ""
-          AND gtm.DealerName LIKE "Steven%"
+        AND gtm.DealerName LIKE "Steven%"
+        )  t1
 
-        ) t1
-    GROUP BY t1.GAEventString
-) t2
+    GROUP BY t1.DealerName, t1.GTMEventString
+    ORDER BY t1.DealerName
+    )t2
 
-
-
------------- WORKING -------------
-
-
-
-SELECT
-t1.sys_id, t1.sys_cdate, t1.sys_udate, t1.sys_user_id,
-t1.DealerName,
-t1.TrackedItemName,
-t1.LeadType
-t1.GTMEventString,
-
-MAX(t1.GADate) AS LastDateTagFired,
-CASE
-    WHEN MAX(t1.GADate) IS NOT NULL THEN DATEDIFF(CURDATE(),MAX(t1.GADate))
-    ELSE CONCAT('Created: ',t1.GTMDate)
-    END AS DaysSince
-
-FROM
-    (SELECT
-     gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
-     gtm.DealerName,
-     gtm.TrackedItemName,
-     gtm.LeadType,
-     ga.`Date` as GADate,
-     gtm.`Date` as GTMDate,
-     REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
-     CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
-    FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-    LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
-
-    WHERE gtm.EventCategory != ""
-    AND gtm.DealerName LIKE "Steven%"
-    )  t1
-
-GROUP BY t1.DealerName, t1.GTMEventString
-ORDER BY t1.DealerName
+ORDER BY Severity DESC
