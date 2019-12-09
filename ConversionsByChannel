@@ -7,7 +7,10 @@ SELECT
  gtm.EventAction,
  gtm.EventLabel,
  ga.`Date` as GADate,
- ga.`Source / Medium`,
+ ga.`Campaign` as Campaign,
+ SUBSTRING_INDEX(ga.`Source / Medium`,'/',1) as Source,
+ SUBSTRING_INDEX(ga.`Source / Medium`,'/',-1) as Medium,
+ ga.`Ad Content` as AdContent,
  gtm.`Date` as GTMDate,
  REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
  CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
@@ -16,4 +19,4 @@ LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Catego
 
 WHERE gtm.EventCategory != ""
 AND gtm.DealerName = "Steven Nissan"
-LIMIT 100
+LIMIT 300
