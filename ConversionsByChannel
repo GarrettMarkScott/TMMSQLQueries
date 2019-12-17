@@ -1,0 +1,22 @@
+SELECT
+ gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
+ gtm.DealerName,
+ gtm.TrackedItemName,
+ gtm.LeadType,
+ gtm.EventCategory,
+ gtm.EventAction,
+ gtm.EventLabel,
+ ga.`Date` as GADate,
+ ga.`Campaign` as Campaign,
+ SUBSTRING_INDEX(ga.`Source / Medium`,'/',1) as Source,
+ SUBSTRING_INDEX(ga.`Source / Medium`,'/',-1) as Medium,
+ ga.`Ad Content` as AdContent,
+ gtm.`Date` as GTMDate,
+ REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+ CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
+FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+WHERE gtm.EventCategory != ""
+AND gtm.DealerName = "Steven Nissan"
+LIMIT 300
