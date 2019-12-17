@@ -1,0 +1,39 @@
+SELECT
+    `t_35`.`sys_id` as `sys_id`,
+    `t_35`.`sys_user_id` as `sys_user_id`,
+    `t_35`.`sys_cdate` as `sys_cdate`,
+    `t_35`.`sys_udate` as `sys_udate`,
+    `t_35`.`Dealer Name` AS `Dealer Name`,
+     date(CAST(`t_35`.`Date` AS DATE)) AS `Date`,
+     `t_35`.`Campaign` AS `Campaign`,
+     `t_35`.`Source` AS `Source`,
+     `t_35`.`Medium` AS `Medium`,
+     `t_35`.`Ad Content` AS `Ad Content`,
+     SUM(`t_35`.`Users`) AS `Users`,
+     SUM(`Variable Forms`)/SUM(`Users`) AS `Var.
+     Form Conversion Rate`,
+     SUM(`Calls`)/SUM(`Users`) AS `Call Conversion Rate`,
+     SUM(`Chats`)/SUM(`Users`) AS `Chat Conversion Rate`,
+     SUM(`Texts`)/SUM(`Users`) AS `Text Conversion Rate`,
+     SUM(`Fixed Forms`)/SUM(`Users`) AS `Fixed Ops Conversion Rate`,
+     SUM(`t_35`.`Variable Forms`) AS `Variable Forms`,
+     SUM(`t_35`.`Fixed Forms`) AS `Fixed Forms`,
+     SUM(`t_35`.`Calls`) AS `Calls`,
+     SUM(`t_35`.`Chats`) AS `Chats`,
+     SUM(`t_35`.`Texts`) AS `Texts`,
+     SUM(`t_35`.`Online Conversational Conversions`) AS `Online Conversational Conversions`,
+     `Online Conversational Conversions`/`Users` AS `Online User Conversion Rate`
+
+FROM
+    `t_35`
+
+GROUP BY
+    `t_35`.`Dealer Name`,
+    date(CAST(`t_35`.`Date` AS DATE)),
+    `t_35`.`Campaign`,
+    `t_35`.`Source`,
+    `t_35`.`Medium`,
+    `t_35`.`Ad Content`,
+    `Online Conversational Conversions`/`Users`
+
+ORDER BY str_to_date(date_format(`Date`,'%Y-%m-%d'),'%Y-%m-%d') DESC

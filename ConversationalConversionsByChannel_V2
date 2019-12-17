@@ -1,0 +1,53 @@
+
+
+SELECT *
+
+FROM `data_5d67cfa96d8c0`.`GA User Metrics (65)` as ga_users
+
+LEFT JOIN t1
+    ON ga_users.`Campaign` = t1.`Campaign`
+    AND ga_users.`Source` = t1.`Source`
+    AND ga_users.`Medium` = t1.`Medium`
+    AND ga_users.`Ad Content` = t1.`AdContent`
+    AND ga_users.`Date` = t1.`DateTagFired`
+
+
+
+
+    {SELECT
+        gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
+        gtm.DealerName,
+        gtm.TrackedItemName,
+        gtm.LeadType,
+        gtm.ConversationType,
+        gtm.EventCategory,
+        gtm.EventAction,
+        gtm.EventLabel,
+        ga_events.`Campaign`,
+        SUBSTRING_INDEX(ga_events.`Source / Medium`,' / ',1) as GASource,
+        SUBSTRING_INDEX(ga_events.`Source / Medium`,' / ',-1) as GAMedium,
+        ga_events.`Ad Content`,
+        ga_events.`Date` as DateTagFired,
+        COUNT(gtm.TrackedItemName) as EventCount
+        FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+        LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga_events ON CONCAT(ga_events.`Event Category`, ga_events.`Event Action`,ga_events.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+        /* The left join primary table needs to be the event table and then connect the GTM labeling to it */
+
+        WHERE gtm.EventCategory != ""
+        AND gtm.DealerName LIKE "Steven Kia"
+
+        GROUP BY
+        ga_events.`Date`,
+        ga_events.`Campaign`,
+        SUBSTRING_INDEX(ga_events.`Source / Medium`,' / ',1),
+        SUBSTRING_INDEX(ga_events.`Source / Medium`,' / ',-1),
+        ga_events.`Ad Content`
+
+
+        ORDER BY ga_events.`Date` DESC
+
+        LIMIT 1000
+    }t1
+
+LIMIT 1000
