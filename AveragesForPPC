@@ -1,0 +1,61 @@
+WITH averages AS (
+  SELECT
+  AVG(ppc.`Avg. CPC`) as AvgCPC,
+  STD(ppc.`Avg. CPC`) as STDCPC
+  FROM`data_5d67cfa96d8c0`.`Google Ads Performance (67)` as ppc
+  WHERE ppc.`ad type` IN ("Text ad","Expanded dynamic search ad","Responsive search ad","Expanded text ad")
+)
+
+SELECT
+  textads.`Avg. CPC`/1000000 as FormattedCPC,
+  textads.`DealerName`,
+  textads.`Ad ID`,
+  textads.`Campaign`,
+  textads.`Headline 1`,
+  textads.`Headline 2`,
+  accounts.`PPCManager`,
+  averages.`AvgCPC`,
+  averages.`STDCPC`
+  STD(textads.`Avg. CPC`) as STDCPC,
+  CASE
+
+    WHEN textads.`Avg. CPC` >=
+    averages.`AvgCPC` - averages.`STDCPC`
+    AND textads.`Avg. CPC` averages.`AvgCPC`
+    THEN "Quartile2"
+
+    WHEN textads.`Avg. CPC` >=
+    averages.`AvgCPC`
+    AND textads.`Avg. CPC` < averages.`AvgCPC` + averages.`STDCPC`
+    THEN "Quartile3"
+
+    WHEN textads.`Avg. CPC` <
+    averages.`AvgCPC` - averages.`STDCPC`
+    THEN "Quartile1"
+
+    ELSE "Quartile4"
+    END as Quartile
+FROM
+/* Selcting Text Ads Only */
+(SELECT
+  ppc.`DealerName`,
+  ppc.`Ad ID`,
+  ppc.`Campaign`,
+  ppc.`Headline 1`,
+  ppc.`Headline 2`,
+  ppc.`ad type`,
+  ppc.`AVG. CPC`
+  FROM`data_5d67cfa96d8c0`.`Google Ads Performance (67)` as ppc
+  WHERE ppc.`ad type` IN ("Text ad","Expanded dynamic search ad","Responsive search ad","Expanded text ad")
+
+  LIMIT 100
+
+  ) AS textads
+
+
+LEFT JOIN `data_5d67cfa96d8c0`.`Client Accounts (22)` as accounts
+  ON textads.DealerName = accounts.DealerName
+
+GROUP BY textads.`Ad ID`
+
+LIMIT 100

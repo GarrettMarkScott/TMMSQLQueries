@@ -1,22 +1,56 @@
-SELECT
- gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
- gtm.DealerName,
- gtm.TrackedItemName,
- gtm.LeadType,
- gtm.EventCategory,
- gtm.EventAction,
- gtm.EventLabel,
- ga.`Date` as GADate,
- ga.`Campaign` as Campaign,
- SUBSTRING_INDEX(ga.`Source / Medium`,'/',1) as Source,
- SUBSTRING_INDEX(ga.`Source / Medium`,'/',-1) as Medium,
- ga.`Ad Content` as AdContent,
- gtm.`Date` as GTMDate,
- REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
- CONCAT(ga.`Event Category`, ga.`Event Action`, ga.`Event Label`) as GAEventString
-FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
-LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as ga ON CONCAT(ga.`Event Category`, ga.`Event Action`,ga.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+Select
+    t1.sys_id, t1.sys_cdate, t1.sys_udate, t1.sys_user_id,
+    t1.DealerName,
+    t1.TrackedItemName,
+    COUNT(t1.TrackedItemName) as TrackedItemCount,
+    t1.LeadType,
+    t1.EventCategory,
+    t1.EventAction,
+    t1.EventLabel,
+    t1.`GADate`,
+    t1.`Campaign`,
+    t1.`Source`,
+    t1.`Medium`,
+    t1.`AdContent`,
+    gausers.Users,
+    gausers.`New Users`,
+    gausers.Sessions,
+    gausers.Bounces,
+    gausers.Pageviews
 
-WHERE gtm.EventCategory != ""
-AND gtm.DealerName = "Steven Nissan"
-LIMIT 300
+
+    FROM
+      (SELECT
+       gtm.sys_id, gtm.sys_cdate, gtm.sys_udate, gtm.sys_user_id,
+       gtm.DealerName,
+       gtm.TrackedItemName,
+       gtm.LeadType,
+       gtm.EventCategory,
+       gtm.EventAction,
+       gtm.EventLabel,
+       gaevents.`Date` as GADate,
+       gaevents.`Campaign` as Campaign,
+       SUBSTRING_INDEX(gaevents.`Source / Medium`,'/',1) as Source,
+       SUBSTRING_INDEX(gaevents.`Source / Medium`,'/',-1) as Medium,
+       gaevents.`Ad Content` as AdContent,
+       gtm.`Date` as GTMDate,
+       REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%') as GTMEventString,
+       CONCAT(gaevents.`Event Category`, gaevents.`Event Action`, gaevents.`Event Label`) as GAEventString
+      FROM `data_5d67cfa96d8c0`.`Client Event Tags (90)` as gtm
+      LEFT JOIN `data_5d67cfa96d8c0`.`GA Events (64)` as gaevents ON CONCAT(gaevents.`Event Category`, gaevents.`Event Action`,gaevents.`Event Label`) LIKE REPLACE(CONCAT(gtm.EventCategory, gtm.EventAction, CASE WHEN gtm.EventLabel = '' THEN '%' ELSE gtm.EventLabel END),'.*','%')
+
+      WHERE gtm.EventCategory != ""
+      AND gtm.DealerName = "Steven Nissan"
+      LIMIT 1000) t1
+
+/* Join is below not working, all are null */
+    LEFT JOIN `data_5d67cfa96d8c0`.`GA User Metrics (65)` as gausers
+      ON gausers.DealerName = t1.DealerName
+      AND gausers.Campaign = t1.Campaign
+      AND gausers.Source = t1.Source
+      AND gausers.Medium = t1.Medium
+      AND gausers.`Ad Content` = t1.AdContent
+      AND gausers.Date = t1.GADate
+
+GROUP BY DealerName, LeadType, EventCategory, EventAction, EventLabel, GADate, Campaign, Source, Medium, AdContent, TrackedItemName
+LIMIT 1000
